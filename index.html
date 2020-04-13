@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>申請フォーム</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div id="app">
+    <form action="./" method="get" name="frm"><!-- action の値は確認画面URL、methodは値が見やすいように一時的にget -->
+        <app-form :form_data="form_data" :mode="mode" :btns="btns"></app-form>
+    </form>
+</div>
+
+<!-- 確認画面テスト用 こっちの id を app にする -->
+<div id="app_">
+    <app-form :form_data="form_data" :mode="mode" :btns="btns">
+        <template v-slot:forms>
+            <form action="./" method="get" name="frm_back"><!-- action の値は入力画面URL、methodは値が見やすいように一時的にget -->
+                <!-- サーバサイドで出力する想定、↓は仮 -->
+                <input type="hidden" name="test" value="hoge">
+            </form>
+            <form action="./" method="get" name="frm_next"><!-- action の値は登録処理URL、methodは値が見やすいように一時的にget -->
+                <!-- サーバサイドで出力する想定、↓は仮 -->
+                <input type="hidden" name="test" value="hogenext">
+            </form>
+        </template>
+    </app-form>
+</div>
+<script src="common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<!-- ■form の情報ここから（value は サーバサイドで出力。他、必要に応じて blade による制御が入ってよい ） ■■■■■■■■■■■■ -->
+<script>
+    var now = new Date("2020/04/10 12:01:12");// サーバサイドで今日の日付を埋め込み
+    /**
+     * group > unit > item という構成です。
+     * item … formのinput等のパーツ1つ1つのこと。
+     * unit … 項目名に対して item をまとめる単位。unit と item が 1:1のケースが大半。
+     * group … unit をカテゴリでまとめた単位。
+     * @namespace
+     * @property {Array}   form_data group の配列
+     * @property {string}  form_data[].group_label group の見出し
+     * @property {Array}   form_data[].units[] unit の配列
+     *
+     * -- unit の Object --
+     * @property {string}  form_data[].units[].label unit のlabel
+     * @property {string}  form_data[].units[].id unit の id ※他のunit の id と重複させない。（item の name との重複は問題なし）
+     * @property {Boolean} [form_data[].units[].can_duplicate = false] unitの単位で複製できる場合は true を指定
+     * @property {Array}   form_data[].units[].items item の配列
+     *
+     * -- item の Object --
+     * @property {string}        form_data[].units[].items[].type (text | number | date | time | radio | checkbox | select | textarea)
+     * @property {string,number,Array} form_data[].units[].items[].value ※type = checkbox のみ Array
+     * @property {string}        form_data[].units[].items[].name ※他の item の name と重複させない。
+     * @property {string}        [form_data[].units[].items[].label] item の前に出力する文字列
+     * @property {string}        [form_data[].units[].items[].suf] item の後ろに出力する文字列
+     * @property {Array}         [form_data[].units[].items[].list] type が radio, checkbox, select なら必須。label(sting)、value(string,number)を持つObjectの配列
+     * @property {string,number} [form_data[].units[].items[].min]
+     * @property {string,number} [form_data[].units[].items[].max]
+     * @property {number}        [form_data[].units[].items[].minlength]
+     * @property {number}        [form_data[].units[].items[].maxlength]
+     * @property {string,number} [form_data[].units[].items[].placeholder]
+     * @property {string}        [form_data[].units[].items[].pattern]
+     * @property {Boolean}       [form_data[].units[].items[].disabled = false]
+     * @property {Boolean}       [form_data[].units[].items[].is_required = false] disabled が true の場合、is_required の true は無効 になるが、item が disabled = false なら入力必須としたいなら、 is_required_if_valid を使用する
+     * @property {Boolean}       [form_data[].units[].items[].is_required_if_valid = false] disabled = false の場合のみ入力必須 としたい場合、true と指定
+     * @property {Boolean}       [form_data[].units[].items[].is_required_all_select = false] type = checkbox のみ指定可。また、disabled が true の場合、is_required_all_select の true は無効 になる
+     * @property {Boolean}       [form_data[].units[].items[].not_send = false] true だと name を出力しない = form submit で送られない
+     * @property {Object}        [form_data[].units[].items[].err_msg_txt] デフォルトエラーメッセージ（AppForm.$data.default_err_msg_txt）を上書きしたいときに指定
+     * @property {Array}         [form_data[].units[].items[].observe_items] observe_item（他の項目と連動しての制御情報）の配列
+     *
+     * -- observe_item の Object --
+     * @property {string}        form_data[].units[].items[].observe_items[].name 監視する item の name
+     * @property {Function}      form_data[].units[].items[].observe_items[].changeCallback 監視する item に更新があると呼ばれる関数。第1パラメータ(observed_item)が監視する item の Object、関数内 this が監視元（自身）の item。※ここはアロー関数NG
+     * @property {Boolean}       [form_data[].units[].items[].observe_items[].init = false] 初期化時に changeCallback を実行する場合は true
+     */
+    var form_data = [
+        {
+            group_label:'概要',
+            units:[
+                {
+                    label: '大会名称',
+                    id: 'tour_name',
+                    items: [
+                        {
+                            type: 'text',
+                            value: '',
+                            name:'tour_name',
+                            minlength: 3,
+                            maxlength: 80,
+                            is_required: true
+                        }
+                    ]
+                },
+                {
+                    label: '紹介文',
+                    id: 'description',
+                    items: [
+                        {
+                            type: 'textarea',
+                            value: '',
+                            name:'description',
+                            minlength: 5,
+                            maxlength: 80,
+                            is_required: true
+                        }
+                    ]
+                },
+                {
+                    label: '想定参加者数',
+                    id: 'participants_num',
+                    items: [
+                        {
+                            type: 'number',
+                            value: '',
+                            name:'participants_num',
+                            min: 5,
+                            max: 1000,
+                            is_required: true
+                        }
+                    ]
+                },
+            ]
+        },
+        {
+            group_label:'日時・場所',
+            units:[
+                {
+                    label: '開催日時',
+                    id: 'tour_date_time',
+                    items: [
+                        {
+                            type: 'date',
+                            value: '',
+                            name:'tour_date[]',
+                            min:formatDate(now,'YYYY-MM-DD'),// サーバサイドで今日を出力
+                            max:formatDate(now,'YYYY')*1+1*1+'-'+formatDate(now,'MM-DD'),// サーバサイドで1年後の今日を出力
+                            is_required: true
+                        },
+                        {
+                            type: 'time',
+                            value: '',
+                            name:'tour_time[]',
+                            is_required: true,
+                            err_msg_txt:{
+                                empty_input:'時間は入力必須です'
+                            }
+                        },
+                    ],
+                    can_duplicate:true
+                },
+                {
+                    label: '郵便番号',
+                    id: 'postal_code',
+                    items: [
+                        {
+                            type: 'text',
+                            value: '',
+                            name:'postal_code',
+                            placeholder:'000-0000',
+                            pattern:'^[0-9]{3}-[0-9]{4}$',
+                            is_required: true,
+                            err_msg_txt:{
+                                pattern:'000-0000のフォーマットで入力してください'
+                            }
+                        }
+                    ]
+                },
+            ]
+        },
+        {
+            group_label:'大会形式',
+            units:[
+                {
+                    label: '大会形式',
+                    id: 'tour_type',
+                    items: [
+                        {
+                            type: 'radio',
+                            value: '',
+                            name:'tour_type',
+                            list: [
+                                {
+                                    label: '候補1',
+                                    value: 1,
+                                },
+                                {
+                                    label: '候補2',
+                                    value: 2,
+                                }
+                            ],
+                            is_required: true
+                        }
+                    ]
+                },
+                {
+                    label: 'タイトル',
+                    id: 'title',
+                    items: [
+                        {
+                            type: 'checkbox',
+                            value: [],// checkbox で value で管理したいなら配列
+                            name:'title',
+                            list: [
+                                {
+                                    label: '候補1',
+                                    value: 1,
+                                },
+                                {
+                                    label: '候補2',
+                                    value: 2,
+                                }
+                            ],
+                            is_required: true
+                        }
+                    ]
+                },
+            ]
+        },
+        {
+            group_label:'費用',
+            units:[
+                {
+                    label: '参加費',
+                    id: 'fee',
+                    items: [
+                        {
+                            type: 'radio',
+                            value: '',
+                            name:'fee',
+                            list: [
+                                {
+                                    label: 'なし',
+                                    value: 1,
+                                },
+                                {
+                                    label: 'あり（こっちを選ぶと金額入力）',
+                                    value: 2,
+                                }
+                            ],
+                            is_required: true
+                        },
+                        {
+                            type: 'number',
+                            value: '',
+                            name:'fee_detail',
+                            suf:'円',
+                            min:0,
+                            max:10000,
+                            observe_items:[
+                                {
+                                    name: 'fee',
+                                    changeCallback(observed_item) {
+                                        // this が observer の この item 自身。またここはアロー関数では動作しない
+                                        this.disabled = !(observed_item.value*1 === 2);
+                                    },
+                                    init: true
+                                }
+                            ],
+                            is_required_if_valid: true,
+                            err_msg_txt:{
+                                empty_input:'参加費ありの場合、金額の入力必須です'
+                            }
+                        }
+                    ]
+                },
+                {
+                    label: '賞品',
+                    id: 'prize',
+                    items: [
+                        {
+                            type: 'radio',
+                            value: '',
+                            name:'prize',
+                            list: [
+                                {
+                                    label: 'なし',
+                                    value: 1,
+                                },
+                                {
+                                    label: 'あり1(提供者入力必須)',
+                                    value: 2,
+                                },
+                                {
+                                    label: 'あり2(金額・提供者入力必須)',
+                                    value: 3,
+                                },
+                                {
+                                    label: 'あり3(金額・提供者入力必須)',
+                                    value: 4,
+                                }
+                            ],
+                            is_required: true
+                        },
+                        {
+                            label:'金額',
+                            type: 'number',
+                            value: '',
+                            name:'prize_detail',
+                            suf:'円',
+                            min:0,
+                            max:99999999,
+                            is_required_if_valid:true,
+                            observe_items:[
+                                {
+                                    name: 'prize',
+                                    changeCallback(observed_item) {
+                                        // this が observer のこの item 自身。またここはアロー関数では動作しない
+                                        this.disabled = !(observed_item.value*1 === 3 || observed_item.value*1 === 4);
+                                    },
+                                    init: true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    label: '提供者',
+                    id: 'owner',
+                    items: [
+                        {
+                            type: 'text',
+                            value: '',
+                            name:'owner',
+                            is_required_if_valid: true,
+                            observe_items:[
+                                {
+                                    name: 'prize',
+                                    changeCallback(observed_item) {
+                                        // this が observer のこの item 自身。またここはアロー関数では動作しない
+                                        this.disabled = !(observed_item.value*1 === 2 || observed_item.value*1 === 3 || observed_item.value*1 === 4);
+                                    },
+                                    init: true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    label: '確認事項',
+                    id: 'fee_agree',
+                    items: [
+                        {
+                            type: 'checkbox',
+                            value: [],
+                            name:'fee_agree',
+                            list: [
+                                {
+                                    label: '同意事項文章入る同意事項文章入る同意事項文章入る同意事項文章入る1',
+                                    value: 1,
+                                },
+                                {
+                                    label: '同意事項文章入る同意事項文章入る同意事項文章入る同意事項文章入る2',
+                                    value: 2,
+                                }
+                            ],
+                            is_required_all_select: true,
+                            observe_items:[
+                                {
+                                    name: 'prize',
+                                    changeCallback(observed_item) {
+                                        // this が observer のこの item 自身。またここはアロー関数では動作しない
+                                        this.disabled = !(observed_item.value*1 === 2 || observed_item.value*1 === 3 || observed_item.value*1 === 4);
+                                    },
+                                    init: true
+                                }
+                            ]
+                        }
+                    ]
+                }
+
+            ]
+        },
+        {
+            group_label:'セレクトテスト',
+            units:[
+                {
+                    label: 'セレクトテスト',
+                    id: 'select_test',
+                    value:'',
+                    items: [
+                        {
+                            type: 'select',
+                            value: '',
+                            name:'select_test',
+                            list: [
+                                {
+                                    label: '↓選択してください',
+                                    value: '',
+                                },
+                                {
+                                    label: '候補1',
+                                    value: 1,
+                                },
+                                {
+                                    label: '候補2',
+                                    value: 2,
+                                }
+                            ],
+                            is_required: true
+                        }
+                    ]
+                }
+            ]
+        },
+        // 同意事項の group は confirm 画面では設定しない
+        {
+            group_label:'同意事項',
+            units:[
+                {
+                    label: '同意事項',
+                    id: 'agree',
+                    items: [
+                        {
+                            type: 'checkbox',
+                            value: [],
+                            name:'agree',
+                            not_send:true,
+                            list: [
+                                {
+                                    label: '同意事項文章入る同意事項文章入る同意事項文章入る同意事項文章入る1',
+                                    value: 1,
+                                },
+                                {
+                                    label: '同意事項文章入る同意事項文章入る同意事項文章入る同意事項文章入る2',
+                                    value: 2,
+                                },
+                                {
+                                    label: '同意事項文章入る同意事項文章入る同意事項文章入る同意事項文章入る3',
+                                    value: 3,
+                                }
+                            ],
+                            is_required_all_select: true
+                        }
+                    ],
+                }
+            ]
+        }
+
+    ];
+</script>
+<!-- ■form の情報ここまで（value は サーバサイドで出力。他、必要に応じて blade による制御が入ってよい ） ■■■■■■■■■■■■ -->
+
+<!-- ■コンポーネント群 ここから（この中に blade の制御は入らない） ■■■■■■■■■■■■ -->
+<script>
+    // form_item 共通の mixin
+    var FormItemMixin = {
+        props:{
+            item:{
+                type:Object,
+                required:true
+            },
+            mode:{
+                type:String,
+                required:true
+            }
+        },
+        computed:{
+            value:{
+                get(){
+                    return this.item.value;
+                },
+                set(val){
+                    this.$emit('update',{
+                        id:this.item.id,
+                        value:val
+                    });
+                }
+            },
+            name(){
+                return this.item.not_send ? null : this.item.name;
+            },
+            class_name(){
+                return this.mode === 'edit' ? this.item.class_name : 'view_parts';
+            }
+        }
+    };
+</script>
+<script type="text/x-template" id="tmpl-app_form-select">
+    <div :class="item.class_name">
+        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+        <template v-if="mode==='edit'">
+            <div :class="item.class_name+'-item'">
+                <p :class="item.class_name+'-label'">{{lebel_selected}}</p>
+                <select :name="name" v-model="value" :disabled="item.disabled">
+                    <option :value="option.value" v-for="option in item.list" :key="option.value" :disabled="option.disabled">{{option.label}}</option>
+                </select>
+            </div>
+        </template>
+        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
+        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+    </div>
+</script>
+<script>
+    Vue.component('FormSelect',{
+        mixins:[FormItemMixin],
+        computed:{
+            lebel_selected(){
+                return this.item.list.reduce((acc,option)=> {
+                    return option.value == this.item.value ? option.label : acc;
+                },'');
+            },
+            value_label() {
+                return this.lebel_selected || '(未選択)';
+            }
+        },
+        template:'#tmpl-app_form-select'
+    });
+</script>
+<script type="text/x-template" id="tmpl-app_form-textarea">
+    <div :class="item.class_name">
+        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+        <textarea :name="name" v-model="value" :placeholder="item.placeholder" :maxlength="item.maxlength" :minlength="item.minlength" :disabled="item.disabled" v-if="mode==='edit'"></textarea>
+        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
+    </div>
+</script>
+<script>
+    Vue.component('FormTextarea',{
+        mixins:[FormItemMixin],
+        template:'#tmpl-app_form-textarea',
+        computed: {
+            value_label() {
+                return this.item.value ? this.item.value : '(未入力)';
+            }
+        }
+    });
+</script>
+<script type="text/x-template" id="tmpl-app_form-input_checkbox">
+    <div :class="item.class_name">
+        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+        <template v-if="mode==='edit'">
+            <p :class="item.class_name+'item'" v-for="checkbox in item.list" :key="checkbox.value">
+                <input type="checkbox" :name="name" v-model="value" :value="checkbox.value" :id="item.name+'_'+checkbox.value" :disabled="item.disabled || checkbox.disabled">
+                <label :for="item.name+'_'+checkbox.value">{{checkbox.label}}</label>
+            </p>
+        </template>
+        <span class="form-item-label" v-if="mode==='view'" v-html="value_label"></span>
+    </div>
+</script>
+<script>
+    Vue.component('FormInputCheckbox',{
+        mixins:[FormItemMixin],
+        template:'#tmpl-app_form-input_checkbox',
+        computed: {
+            value_label() {
+                return this.item.value.length ? this.item.list.reduce((value_label_ary, checkbox)=>{
+                    this.item.value.some( value => {
+                        // 数値が文字列になると Array.indexOfでチェックできないので
+                        if(value == checkbox.value){
+                            value_label_ary.push(checkbox.label);
+                            return true;
+                        }
+                        return false;
+                    });
+                    return value_label_ary;
+                },[]).join('<br>') : '(未選択)';
+            }
+        }
+    });
+</script>
+<script type="text/x-template" id="tmpl-app_form-input_radio">
+    <div :class="item.class_name">
+        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+        <template v-if="mode==='edit'">
+            <p :class="item.class_name+'item'" v-for="radio in item.list" :key="radio.value">
+                <input type="radio" :name="name" v-model="value" :value="radio.value" :id="item.name+'_'+radio.value" :disabled="item.disabled || radio.disabled">
+                <label :for="item.name+'_'+radio.value">{{radio.label}}</label>
+            </p>
+        </template>
+        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
+    </div>
+</script>
+<script>
+    Vue.component('FormInputRadio',{
+        mixins:[FormItemMixin],
+        template:'#tmpl-app_form-input_radio',
+        computed: {
+            value_label() {
+                return this.item.list.reduce((value_label, radio)=>{
+                    return radio.value == this.item.value ? radio.label : value_label;
+                },'(未選択)');
+            }
+        }
+    });
+</script>
+<script type="text/x-template" id="tmpl-app_form-input_time">
+    <div :class="class_name">
+        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+        <input type="time" :name="name" v-model="value" :placeholder="item.placeholder" :max="item.max" :min="item.min" :step="item.step" :disabled="item.disabled" v-if="mode==='edit'">
+        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
+        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+    </div>
+</script>
+<script>
+    Vue.component('FormInputTime',{
+        mixins:[FormItemMixin],
+        template:'#tmpl-app_form-input_time',
+        computed: {
+            value_label() {
+                return this.item.value ? this.item.value : '--:--';
+            }
+        }
+    });
+</script>
+<script type="text/x-template" id="tmpl-app_form-input_date">
+    <div :class="class_name">
+        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+        <input type="date" :name="name" v-model="value" :placeholder="item.placeholder" :max="item.max" :step="item.step" :disabled="item.disabled" v-if="mode==='edit'">
+        <!-- UI上、min が今日より後だと、日付の入力がやりづらいので、input タグの min では指定しない -->
+        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
+        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+    </div>
+</script>
+<script>
+    Vue.component('FormInputDate',{
+        mixins:[FormItemMixin],
+        template:'#tmpl-app_form-input_date',
+        computed: {
+            value_label() {
+                return this.item.value ? formatDate(this.item.value,'YYYY/MM/DD') : '----/--/--';
+            }
+        }
+    });
+</script>
+<script type="text/x-template" id="tmpl-app_form-input_number">
+    <div :class="class_name">
+        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+        <input type="number" :name="name" v-model="value" :placeholder="item.placeholder" :max="item.max" :min="item.min" :step="item.step" :disabled="item.disabled" v-if="mode==='edit'">
+        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
+        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+    </div>
+</script>
+<script>
+    Vue.component('FormInputNumber',{
+        mixins:[FormItemMixin],
+        template:'#tmpl-app_form-input_number',
+        computed: {
+            value_label() {
+                return this.item.value ? this.item.value : '-';
+            }
+        }
+    });
+</script>
+<script type="text/x-template" id="tmpl-app_form-input_text">
+    <div :class="class_name">
+        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+        <input type="text" :name="name" v-model="value" :placeholder="item.placeholder" :maxlength="item.maxlength" :minlength="item.minlength" :disabled="item.disabled" v-if="mode==='edit'">
+        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
+        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+    </div>
+</script>
+<script>
+    Vue.component('FormInputText',{
+        mixins:[FormItemMixin],
+        template:'#tmpl-app_form-input_text',
+        computed: {
+            value_label() {
+                return this.item.value ? this.item.value : '(未入力)';
+            }
+        }
+    });
+</script>
+<script type="text/x-template" id="tmpl-app_form">
+    <div>
+        <section class="form" v-for="unit_group in unit_groups" :key="unit_group.group_label">
+            <h1>{{unit_group.group_label}}</h1>
+            <div class="form-grp">
+                <template v-for="unit in unit_group.units">
+                    <dl :class="unit.class_name" :key="unit.id">
+                        <dt v-if="!unit.is_duplicated">{{unit.label}}</dt>
+                        <dd>
+                            <component v-for="item in unit.items" :key="item.id" :is="item.component_name" :item="item" @update="update" :mode="mode"></component>
+                            <p class="form-error" v-if="unit.err_msgs.length" v-html="unit.err_msgs.join('<br>')"></p>
+                        </dd>
+                        <dd v-if="unit.is_duplicated"><a href="#" @click.prevent="removeUnit(unit)">削除</a></dd>
+                        <dd v-if="unit.can_duplicate"><a href="#" @click.prevent="addUnit(unit)">{{unit.label}}追加</a></dd>
+                    </dl>
+                </template>
+            </div>
+        </section>
+        <section class="form_btns">
+            <p :class="btn.class_names" v-for="btn in btns" :key="btn.label"><a href="#" @click.prevent="onClickSubmit(btn.form_name)">{{btn.label}}</a></p>
+        </section>
+        <slot name="forms"></slot>
+    </div>
+</script>
+<script>
+    Vue.component('AppForm',{
+        data(){
+            return {
+                unit_groups: [],
+                observed_item:{},
+                default_err_msg_txt:{
+                    empty_input:'入力必須です',
+                    empty_select:'選択必須です',
+                    min:'__MIN__以上の値を指定してください',
+                    max:'__MAX__以下の値を指定してください',
+                    min_date:'__MIN__以降の日を入力してください',
+                    max_date:'__MAX__以前の日を入力してください',
+                    min_time:'__MIN__以降の時間を入力してください',
+                    max_time:'__MAX__以前の時間を入力してください',
+                    minlength:'__MINLENGTH__文字以上入力してください',
+                    maxlength:'__MAXLENGTH__文字以下で入力してください',
+                    pattern:'不正なフォーマットです',
+                    all_select:'すべて選択必須です'
+                }
+            }
+        },
+        props:{
+            form_data:{
+                type:Array,
+                required:true
+            },
+            mode:{
+                type:String,
+                required:true
+            },
+            btns:{
+                type:Array,
+                required:true
+            }
+        },
+        computed:{
+            /**
+             * id(≒name) をキーにした item の Object を返す。
+             */
+            item_by_id(){
+                return this.unit_groups.reduce((ret_obj, group) =>{
+                    return group.units.reduce((acc,unit) => {
+                        unit.items.forEach(item => {
+                            acc[item.id] = item;
+                        });
+                        return acc;
+                    },ret_obj);
+                },{});
+            },
+            /**
+             * id をキーにした unit の Object を返す。
+             */
+            units_by_id(){
+                return this.unit_groups.reduce((ret_obj, group) =>{
+                    group.units.forEach(unit => {
+                        let _id = unit.base_id || unit.id;
+                        if(!ret_obj[_id]){
+                            ret_obj[_id] = [];
+                        }
+                        ret_obj[_id].push(unit);
+                    });
+                    return ret_obj;
+                },{});
+            }
+        },
+        created(){
+            // this.$data.unit_group をセット
+            this.form_data.forEach(data=>{
+                let _unit_group = {
+                    group_label:data.group_label,
+                    units:[]
+                };
+                data.units.forEach(unit=>{
+                    const formated_unit_data = this.formatUnitData(unit);
+                    formated_unit_data && _unit_group.units.push(formated_unit_data);
+                });
+                _unit_group.units.length && this.unit_groups.push(_unit_group);
+
+            });
+
+            // this.$data.ovserved_item をセット（監視されている item をキーにして observed_item に追加）
+            this.unit_groups.forEach(group => {
+                group.units.forEach(unit => {
+                    unit.items.forEach(item => {
+                        item.observe_items !== void 0 && Array.isArray(item.observe_items) && item.observe_items.forEach(observe_item => {
+                            if (!this.observed_item[observe_item.name]) {
+                                this.observed_item[observe_item.name] = [];
+                            }
+                            this.observed_item[observe_item.name].push({
+                                _this:item,
+                                callback:observe_item.changeCallback,
+                            });
+                            // 初期処理が true だったら処理
+                            if(observe_item.init){
+                                observe_item.changeCallback.call(item, this.item_by_id[observe_item.name]);
+                            }
+
+                        });
+                    });
+                });
+            });
+        },
+        template:'#tmpl-app_form',
+        methods:{
+            /**
+             * item 単位の更新処理
+             * @param {Object} update_obj item の更新情報
+             * @param {string} update_obj.id 更新対象の item の id
+             * @param {string,number} update_obj.value 更新後の値
+             */
+            update(update_obj){
+                if(Array.isArray(this.item_by_id[update_obj.id].value)){
+                    // value が配列の場合は1回リセットして入れなおす
+                    this.item_by_id[update_obj.id].value.splice(0);
+                    Array.isArray(update_obj.value) && update_obj.value.forEach(update_value => {
+                        this.item_by_id[update_obj.id].value.push(update_value);
+                    });
+
+                }else{
+                    this.item_by_id[update_obj.id].value = update_obj.value;
+                }
+
+                // 監視されている item だったら処理
+                this.observed_item[update_obj.id] && this.observed_item[update_obj.id].forEach( observer =>{
+                    observer.callback.call(observer._this,update_obj);
+                });
+            },
+            /**
+             * unit データを整形して返す
+             * @param {Object} unit_data 整形したい unitデータ
+             * @return {Object} 整形後の unit データ（必須プロパティがなければ null が返る）
+             */
+            formatUnitData(unit_data){
+                let _is_valid = true;
+                /**
+                 * unit のプロパティ
+                 * @namespace
+                 * @property {Array.<string>} required unit の必須プロパティ、不足していれば console.error で出力
+                 * @property {Array.<Object>} optional unit の任意プロパティ情報の Object の配列。 Key名が任意プロパティ名、 value が デフォルト値
+                 */
+                const unit_props = {
+                    required:['label','id','items'],
+                    optional:[
+                        {err_msgs:[]}
+                    ]
+                };
+                /**
+                 * item type別 の コンポーネント名・プロパティ
+                 * @namespace
+                 * @property {Object} (text | number | date | time | radio | checkbox | select | textarea) 以下【type名】と記載
+                 * @property {string} 【type名】.component_name
+                 * @property {string} 【type名】.class_name
+                 * @property {Object} 【type名】.item_props
+                 * @property {Array.<string>} 【type名】.item_props.required item の必須プロパティ、不足していれば console.error で出力
+                 * @property {Array.<Object>} 【type名】.item_props.optional item の任意プロパティ情報の Object の配列。Key名が任意プロパティ名、 value が デフォルト値
+                 * @property {Array.<string>} 【type名】.item_list_props.required item.list[] の必須プロパティ、不足していれば console.error で出力。type が radio, checkbox, select の場合のみ
+                 * @property {Array.<string>} 【type名】.item_list_props.optional item.list[] の任意プロパティ情報の Object の配列。Key名が任意プロパティ名、 value が デフォルト値。type が radio, checkbox, select の場合のみ
+                 */
+                const settings_by_type = {
+                    text:{
+                        component_name:'FormInputText',
+                        class_name:'input_parts',
+                        item_props:{
+                            required:['name','type','value'],
+                            optional:[
+                                {label:''},
+                                {placeholder:''},
+                                {maxlength:null},
+                                {minlength:null},
+                                {pattern:null},
+                                {disabled:false},
+                                {is_required:false},
+                                {is_required_if_valid:false},
+                                {not_send:false}
+                            ]
+                        }
+                    },
+                    number:{
+                        component_name:'FormInputNumber',
+                        class_name:'input_parts',
+                        item_props:{
+                            required:['name','type','value'],
+                            optional:[
+                                {label:''},
+                                {max:null},
+                                {min:null},
+                                {step:null},
+                                {disabled:false},
+                                {is_required:false},
+                                {is_required_if_valid:false},
+                                {not_send:false}
+                            ]
+                        }
+                    },
+                    date:{
+                        component_name:'FormInputDate',
+                        class_name:'date_parts',
+                        item_props:{
+                            required:['name','type','value'],
+                            optional:[
+                                {label:''},
+                                {max:null},
+                                {min:null},
+                                {step:null},
+                                {disabled:false},
+                                {is_required:false},
+                                {is_required_if_valid:false},
+                                {not_send:false}
+                            ]
+                        }
+                    },
+                    time:{
+                        component_name:'FormInputTime',
+                        class_name:'time_parts',
+                        item_props:{
+                            required:['name','type','value'],
+                            optional:[
+                                {label:''},
+                                {max:null},
+                                {min:null},
+                                {step:null},
+                                {disabled:false},
+                                {is_required:false},
+                                {is_required_if_valid:false},
+                                {not_send:false}
+                            ]
+                        }
+                    },
+                    radio: {
+                        component_name: 'FormInputRadio',
+                        class_name:'radio_parts',
+                        item_props:{
+                            required:['name','type','list','value'],
+                            optional:[
+                                {label:''},
+                                {disabled:false},
+                                {is_required:false},
+                                {is_required_if_valid:false},
+                                {not_send:false}
+                            ]
+                        },
+                        item_list_props:{
+                            required:['label','value'],
+                            optional:[
+                                {disabled:false}
+                            ]
+                        }
+                    },
+                    checkbox: {
+                        component_name: 'FormInputCheckbox',
+                        class_name:'checkbox_parts',
+                        item_props:{
+                            required:['name','type','list','value'],
+                            optional:[
+                                {label:''},
+                                {disabled:false},
+                                {is_required:false},
+                                {is_required_if_valid:false},
+                                {is_required_all_select:false},
+                                {not_send:false}
+                            ]
+                        },
+                        item_list_props:{
+                            required:['label','value'],
+                            optional:[
+                                {disabled:false}
+                            ]
+                        }
+                    },
+                    select: {
+                        component_name: 'FormSelect',
+                        class_name:'select_parts',
+                        item_props:{
+                            required:['name','type','list','value'],
+                            optional:[
+                                {label:''},
+                                {disabled:false},
+                                {is_required:false},
+                                {is_required_if_valid:false},
+                                {not_send:false}
+                            ]
+                        },
+                        item_list_props:{
+                            required:['label','value'],
+                            optional:[
+                                {disabled:false}
+                            ]
+                        }
+                    },
+                    textarea: {
+                        component_name: 'FormTextarea',
+                        class_name:'textarea_parts',
+                        item_props:{
+                            required:['name','type','value'],
+                            optional:[
+                                {label:''},
+                                {placeholder:''},
+                                {maxlength:null},
+                                {minlength:null},
+                                {disabled:false},
+                                {is_required:false},
+                                {is_required_if_valid:false},
+                                {not_send:false}
+                            ]
+                        }
+                    }
+
+                };
+
+                // unit の必須プロパティの不足チェック、なければ console.error で出力
+                if(unit_props.required.some(prop=> unit_data[prop] === void 0)){
+                    console.error('Missing required property in form data',unit_data);
+                    _is_valid = false;
+                }
+                // unit の任意プロパティ、なければ初期値追加
+                unit_props.optional.forEach(prop_default => {
+                    Object.keys(prop_default).forEach(key => {
+                        if(unit_data[key] === void 0){
+                            this.$set(unit_data, key, prop_default[key]);
+                        }
+                    });
+                });
+
+                // item 単位のチェック
+                unit_data.items.forEach(item => {
+
+                    // type のみ最初にチェック
+                    if(!item.type || !settings_by_type[item.type]){
+                        console.error('Missing or invalid required property \'type\' in item data',item);
+                        _is_valid = false;
+                        return;
+                    }
+
+                    // item のプロパティチェック
+                    const _item_props = settings_by_type[item.type].item_props;
+                    // 必須プロパティ、なければ console.error で出力
+                    if(_item_props.required.some(prop => item[prop] === void 0)){
+                        console.error('Missing required property in item data',item);
+                        _is_valid = false;
+                    }
+                    // 任意プロパティ、なければ初期値追加
+                    _item_props.optional.forEach(prop_default => {
+                        Object.keys(prop_default).forEach(key => {
+                            if(item[key] === void 0){
+                                this.$set(item, key, prop_default[key]);
+                            }
+                        });
+                    });
+
+                    // item の id をセット
+                    this.$set(item, 'id', item.name);
+
+                    // item の component_name をセット
+                    this.$set(item, 'component_name', settings_by_type[item.type].component_name);
+
+                    // item の class_name をセット
+                    this.$set(item, 'class_name', settings_by_type[item.type].class_name);
+
+                    // item.list のプロパティのチェック
+                    const _item_list_props = settings_by_type[item.type].item_list_props || '';
+                    _item_list_props && item.list && item.list.forEach(list_item => {
+                        // 必須プロパティ、なければ console.error で出力
+                        if(_item_list_props.required.some(prop => list_item[prop] === void 0)){
+                            console.error('Missing required property in item.list data',item);
+                        }
+                        // 任意プロパティ、なければ初期値追加
+                        _item_list_props.optional.forEach(prop_default => {
+                            Object.keys(prop_default).forEach(key => {
+                                if(list_item[key] === void 0){
+                                    this.$set(list_item, key, prop_default[key]);
+                                }
+                            });
+                        });
+                    });
+
+
+                });
+
+                // itemから unit 単位の class_name をセット
+                let _class_name = {
+                    'is_required':unit_data.items.some(item => {
+                        return item.is_required;
+                    })
+                };
+                _class_name['form-unit-'+unit_data.id] = true;
+                unit_data.class_name = _class_name;
+
+                return _is_valid ? unit_data : null;
+            },
+            /**
+             * エラーメッセージを返す
+             * @param {string} エラーの種類
+             * @param {Object} item チェック対象のitem
+             * @return {string} エラーメッセージ
+             */
+            _getErrMsg(err_type,item){
+                let err_msg = '';
+                // item 個別に err_msg_txt が設定されていればそちらを優先
+                let err_msg_txt = Object.assign({}, this.default_err_msg_txt, item.err_msg_txt || {});
+                if(err_type === 'empty'){
+                    // empty は未入力と未選択のメッセージだし分け
+                    err_type = (item.type === 'radio' || item.type === 'checkbox' || item.type === 'select') ? 'empty_select' : 'empty_input';
+                }
+                if(err_type === 'min' || err_type === 'max'){
+                    // min, max は、 type = date と type = time と それ以外（＝type = number）でメッセージだし分け
+                    err_type = (item.type === 'date' || item.type === 'time') ? err_type + '_' + item.type : err_type;
+                }
+                err_msg = err_msg_txt[err_type];
+                if(err_type === 'min' || err_type === 'min_date' || err_type === 'min_time'){
+                    let replace_str = item.type === 'date' ? formatDate(item.min,'YYYY/MM/DD') : item.min;
+                    err_msg = err_msg_txt[err_type].replace(/__MIN__/g,replace_str);
+                }
+                if(err_type === 'max' || err_type === 'max_date' || err_type === 'max_time'){
+                    let replace_str = item.type === 'date' ? formatDate(item.max,'YYYY/MM/DD') : item.max;
+                    err_msg = err_msg_txt[err_type].replace(/__MAX__/g,replace_str);
+                }
+                if(err_type === 'minlength'){
+                    err_msg = err_msg_txt[err_type].replace(/__MINLENGTH__/g,item.minlength);
+                }
+                if(err_type === 'maxlength'){
+                    err_msg = err_msg_txt[err_type].replace(/__MAXLENGTH__/g,item.maxlength);
+                }
+
+                return err_msg;
+            },
+            /**
+             * 未入力チェック
+             * @param {Object} item チェック対象のitem
+             * @return {boolean} エラーがあるか否か
+             */
+            _hasErrEmpty(item){
+                return !item.disabled && (item.is_required || item.is_required_if_valid) && (Array.isArray(item.value) && !item.value.length || !Array.isArray(item.value) && !item.value);
+            },
+            /**
+             * min チェック
+             * @param {Object} item チェック対象のitem
+             * @return {boolean} エラーがあるか否か
+             */
+            _hasErrMin(item){
+                return !item.disabled && !Array.isArray(item.value) && item.value !== '' && item.min !== void 0 && item.min !== null && item.value < item.min;
+            },
+            /**
+             * max チェック
+             * @param {Object} item チェック対象のitem
+             * @return {boolean} エラーがあるか否か
+             */
+            _hasErrMax(item){
+                return !item.disabled && !Array.isArray(item.value) && item.value !== '' && item.max !== void 0 && item.max !== null && item.value > item.max;
+            },
+            /**
+             * minlength チェック
+             * @param {Object} item チェック対象のitem
+             * @return {boolean} エラーがあるか否か
+             */
+            _hasErrMinlength(item){
+                return !item.disabled && !Array.isArray(item.value) && item.value !== '' && item.minlength !== void 0 && item.minlength !== null && item.value.length < item.minlength;
+            },
+            /**
+             * maxlength チェック
+             * @param {Object} item チェック対象のitem
+             * @return {boolean} エラーがあるか否か
+             */
+            _hasErrMaxlength(item){
+                return !item.disabled && !Array.isArray(item.value) && item.value !== '' && item.maxlength !== void 0 && item.maxlength !== null && item.value.length > item.maxlength;
+            },
+            /**
+             * pattern チェック
+             * @param {Object} item チェック対象のitem
+             * @return {boolean} エラーがあるか否か
+             */
+            _hasErrPattern(item){
+                let ret = false;
+                if(!item.disabled && !Array.isArray(item.value) && item.value !== '' && item.pattern !== void 0 && item.pattern){
+                    let reg = new RegExp(item.pattern);
+                    if(!item.value.match(reg)){
+                        ret = true;
+                    }
+                }
+                return ret;
+            },
+            /**
+             * all_select チェック
+             * @param {Object} item チェック対象のitem
+             * @return {boolean} エラーがあるか否か
+             */
+            _hasErrAllSelect(item){
+                return !item.disabled && Array.isArray(item.value) && item.is_required_all_select !== void 0 && item.is_required_all_select && item.value.length !== item.list.length;
+            },
+            /**
+             * unit を複製し、複製元のunitの次に差し込む
+             * @param {Object} base_unit 複製元のunit
+             */
+            addUnit(base_unit){
+                // 複製unit の入れ物
+                let clone_unit = {};
+
+                // 複製元のid （後々差し込む位置を探すために必要となるので最初で保持しておく）
+                let cloned_unit_id = base_unit.id;
+
+                // 複製する unit, item の id が重複しないように追加する文字列を生成しておく（unit と item で追加する文字列が一致する必要はないが、一致しても問題ないので）
+                let id_suf = this._getUniqueId();
+
+                // 複製元の unit を clone。err_msgs[] は空配列、それ以外はディープコピー
+                Object.keys(base_unit).forEach(unit_key => {
+                    if(Array.isArray(base_unit[unit_key])){
+                        /* items, err_msgs */
+                        clone_unit[unit_key] = [];
+                        unit_key === 'items' && base_unit[unit_key].forEach(item => {
+                            clone_unit[unit_key].push(Object.assign({}, item));
+                        });
+                    }else if(base_unit[unit_key] instanceof Object){
+                        /* class_name */
+                        clone_unit[unit_key] = Object.assign({}, base_unit[unit_key]);
+                    }else{
+                        clone_unit[unit_key] = base_unit[unit_key];
+                    }
+                });
+                // base_id がなければ（複製元がオリジナル）id を base_id として適用
+                clone_unit.base_id = clone_unit.base_id === void 0 ? clone_unit.id : clone_unit.base_id;
+                // 複製する unit の id は既存の id と重複しないように末尾にユニークな文字列を追加
+                clone_unit.id = clone_unit.base_id + id_suf;
+                // 複製する unit は is_duplicated = true で適用（base_id の有無でわかるが、見た目でわかりやすいプロパティ名で追加）
+                clone_unit.is_duplicated = true;
+
+                // 複製する unit.items[] の id を既存の id と重複しないように末尾にユニークな文字列を追加
+                clone_unit.items.forEach(item => {
+                    item.id += id_suf;
+                });
+
+                // 複製元の unit の次に、複製した unit を差し込む
+                this.unit_groups.forEach(group => {
+                    let add_index = group.units.reduce((add_index, unit,index) => {
+                        return unit.id === cloned_unit_id ? index : add_index;
+                    },void 0);
+                    if(add_index !== void 0){
+                        group.units.splice(++add_index, 0, clone_unit);
+                    }
+                });
+
+                // unit の can_duplicate の調整
+                this._setCanDuplicate(clone_unit.base_id);
+            },
+            /**
+             * unit 削除
+             * @param {Object} tgt_unit 削除対象のunit
+             */
+            removeUnit(tgt_unit){
+                if(!tgt_unit.is_duplicated){
+                    return;
+                }
+                let tgt_unit_base_id = tgt_unit.base_id;
+                let tgt_unit_id = tgt_unit.id;
+                this.unit_groups.forEach(group => {
+                    let remove_index = group.units.reduce((remove_index, unit,index) => {
+                        return unit.id === tgt_unit_id ? index : remove_index;
+                    },void 0);
+                    if(remove_index !== void 0){
+                        group.units.splice(remove_index, 1);
+                    }
+                });
+                this._setCanDuplicate(tgt_unit_base_id);
+            },
+            /**
+             * 複製が可能な unit 群の can_duplicate を適用（最後の1つだけ can_duplicate が true になる
+             * @param {String} unit_id 対象の unit の id(base_id)
+             */
+            _setCanDuplicate(unit_id){
+                this.units_by_id[unit_id] && this.units_by_id[unit_id].forEach( (unit, index, origin_list) => {
+                    unit.can_duplicate = index === origin_list.length-1;
+                });
+            },
+            /**
+             * ユニークなIDを返す
+             * @return {String}
+             */
+            _getUniqueId(){
+                return new Date().getTime().toString(16) + Math.floor(1000 * Math.random()).toString(16)
+            },
+            /**
+             * 送信をクリックした際の処理
+             * mode が edit だったら入力チェックをして、エラーがなければ送信、エラーがあればエラーメッセージを表示
+             * @param {String} form_name submit する form の name
+             */
+            onClickSubmit(form_name){
+                // mode が edit の場合は入力内容チェック
+                let err_flg = this.mode === 'edit' && this.unit_groups.reduce((group_err_flg, group) => {
+                    return group.units.reduce((err_flg, unit) => {
+                        // エラー初期化
+                        let _already_empty_err = false; // unit内に未入力エラーが複数あっても、未入力エラーのメッセージは1つにするためのチェックフラグ
+                        unit.err_msgs.splice(0);
+
+                        unit.items.forEach(item => {
+                            // 未入力チェック
+                            this._hasErrEmpty(item) && !_already_empty_err && (_already_empty_err = true) && unit.err_msgs.push(this._getErrMsg('empty',item));
+
+                            // min チェック
+                            this._hasErrMin(item) && unit.err_msgs.push(this._getErrMsg('min',item));
+
+                            // max チェック
+                            this._hasErrMax(item) && unit.err_msgs.push(this._getErrMsg('max',item));
+
+                            // minlength チェック
+                            this._hasErrMinlength(item) && unit.err_msgs.push(this._getErrMsg('minlength',item));
+
+                            // maxlength チェック
+                            this._hasErrMaxlength(item) && unit.err_msgs.push(this._getErrMsg('maxlength',item));
+
+                            // pattern チェック
+                            this._hasErrPattern(item) && unit.err_msgs.push(this._getErrMsg('pattern',item));
+
+                            // 全選択チェック
+                            this._hasErrAllSelect(item) && unit.err_msgs.push(this._getErrMsg('all_select',item));
+                        });
+
+                        return !!unit.err_msgs.length || err_flg;
+                    },group_err_flg);
+                },false);
+
+                if(!err_flg){
+                    console.log('エラーがないのでsubmit');
+                    console.log(document[form_name]);
+                    document[form_name].submit();
+                }
+            }
+        }
+    });
+</script>
+<!-- ■コンポーネント群 ここまで（この中に blade の制御は入らない） ■■■■■■■■■■■■ -->
+
+<!-- ■Vue の ルート埋め込み ここから（action 等、必要に応じて blade による制御が入ってよい ） ■■■■■■■■■■■■ -->
+<script>
+    (function () {
+        "use strict";
+        new Vue({
+            el:'#app',
+            data:{
+                form_data:form_data,
+                mode:'edit',/* edit | view */
+                /* 入力画面を想定した btns */
+                btns: [
+                    {
+                        label:'確認画面へ',
+                        form_name:'frm',
+                        class_names:['btn','btn-next']
+                    }
+                ]
+                /* 確認画面を想定した btns */
+                /* btns: [
+                    {
+                        label:'戻る',
+                        form_name:'frm_back',
+                        class_names:['btn','btn-back']
+                    },
+                    {
+                        label:'上記内容で申請',
+                        form_name:'frm_next',
+                        class_names:['btn','btn-next']
+                    }
+                ]*/
+            }
+        });
+    })();
+</script>
+<!-- ■Vue の ルート埋め込み ここまで（action 等、必要に応じて blade による制御が入ってよい ） ■■■■■■■■■■■■ -->
+</body>
+</html>
