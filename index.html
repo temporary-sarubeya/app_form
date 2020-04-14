@@ -1065,18 +1065,19 @@
 
                 // itemから unit 単位の class_name をセット
                 let _class_name = {
-                    'is_required':unit_data.items.some(item => {
+                    'is-required':unit_data.items.some(item => {
                         return item.is_required;
-                    })
+                    }),
+                    'is-error':false
                 };
                 _class_name['form-unit-'+unit_data.id] = true;
-                unit_data.class_name = _class_name;
+                this.$set(unit_data, 'class_name', _class_name);
 
                 return _is_valid ? unit_data : null;
             },
             /**
              * エラーメッセージを返す
-             * @param {string} エラーの種類
+             * @param {string} err_type エラーの種類
              * @param {Object} item チェック対象のitem
              * @return {string} エラーメッセージ
              */
@@ -1303,9 +1304,24 @@
                     },group_err_flg);
                 },false);
 
-                if(!err_flg){
-                    console.log('エラーがないのでsubmit');
-                    console.log(document[form_name]);
+                if(err_flg) {
+                    // エラーのある unit に is-error を追加
+                    this.unit_groups.forEach(group => {
+                        group.units.forEach(unit => {
+                            unit.class_name['is-error'] = !!unit.err_msgs.length;
+                        });
+                    });
+                    // 一番上のエラーがあるunit が画面外だったら移動（DOM描画を待つために nextTick）
+                    this.$nextTick()
+                        .then( () => {
+                            let _first_unit_elm_has_error = Array.prototype.reduce.call(this.$el.getElementsByClassName('is-error'), (acc, unit_elm,index) => {
+                                return index === 0 ? unit_elm : acc;
+                            },null);
+                            _first_unit_elm_has_error && _first_unit_elm_has_error.getBoundingClientRect().top < 0 && smoothScroll(_first_unit_elm_has_error);
+                        });
+
+                }else{
+                    // error がないので submit
                     document[form_name].submit();
                 }
             }
@@ -1314,7 +1330,7 @@
 </script>
 <!-- ■コンポーネント群 ここまで（この中に blade の制御は入らない） ■■■■■■■■■■■■ -->
 
-<!-- ■Vue の ルート埋め込み ここから（action 等、必要に応じて blade による制御が入ってよい ） ■■■■■■■■■■■■ -->
+<!-- ■Vue の ルート埋め込み ここから（必要に応じて blade による制御が入ってよい ） ■■■■■■■■■■■■ -->
 <script>
     (function () {
         "use strict";
