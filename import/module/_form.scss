@@ -1,0 +1,59 @@
+@charset "UTF-8";
+
+.form{
+	h1{
+		padding:10px 0;
+		font-size:20px;
+		line-height:24px;
+		color:#a6fd64;
+	}
+
+	.form-grp{
+		padding:10px;
+		border:1px solid #999;
+		background-color:#333;
+
+		dl + dl{
+			margin-top:10px;
+		}
+
+		dt{
+			padding:5px 0;
+			font-size:14px;
+			line-height:20px;
+		}
+
+		dd{
+			.form-unit_remove{
+				display: inline-block;
+				margin-left:10px;
+			}
+
+			.form-error{
+				position:relative;
+				padding:2px 5px;
+				font-size:14px;
+				line-height:20px;
+				background-color:#a6fd64;
+				color:#454545;
+				&::after{
+					content: "";
+					position: absolute;
+					top: -10px;
+					left: 15px;
+					border-right: 6px solid transparent;
+					border-bottom: 10px solid #a6fd64;
+					border-left: 6px solid transparent;
+				}
+			}
+
+			&.form-unit_add{
+				padding:5px 0;
+			}
+		}
+	}
+
+	&+.form{
+		margin-top:20px;
+	}
+}

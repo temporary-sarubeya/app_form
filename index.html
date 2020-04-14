@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <title>申請フォーム</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-<div id="app">
+<div id="app" class="l-form">
     <form action="./" method="get" name="frm"><!-- action の値は確認画面URL、methodは値が見やすいように一時的にget -->
         <app-form :form_data="form_data" :mode="mode" :btns="btns"></app-form>
     </form>
@@ -529,7 +530,7 @@
     <div :class="item.class_name">
         <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
         <template v-if="mode==='edit'">
-            <p :class="item.class_name+'item'" v-for="checkbox in item.list" :key="checkbox.value">
+            <p :class="item.class_name+'-item'" v-for="checkbox in item.list" :key="checkbox.value">
                 <input type="checkbox" :name="name" v-model="value" :value="checkbox.value" :id="item.name+'_'+checkbox.value" :disabled="item.disabled || checkbox.disabled">
                 <label :for="item.name+'_'+checkbox.value">{{checkbox.label}}</label>
             </p>
@@ -562,7 +563,7 @@
     <div :class="item.class_name">
         <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
         <template v-if="mode==='edit'">
-            <p :class="item.class_name+'item'" v-for="radio in item.list" :key="radio.value">
+            <p :class="item.class_name+'-item'" v-for="radio in item.list" :key="radio.value">
                 <input type="radio" :name="name" v-model="value" :value="radio.value" :id="item.name+'_'+radio.value" :disabled="item.disabled || radio.disabled">
                 <label :for="item.name+'_'+radio.value">{{radio.label}}</label>
             </p>
@@ -670,16 +671,16 @@
                         <dt v-if="!unit.is_duplicated">{{unit.label}}</dt>
                         <dd>
                             <component v-for="item in unit.items" :key="item.id" :is="item.component_name" :item="item" @update="update" :mode="mode"></component>
+                            <p class="form-unit_remove" v-if="unit.is_duplicated"><a href="#" @click.prevent="removeUnit(unit)" class="remove_unit">×削除</a></p>
                             <p class="form-error" v-if="unit.err_msgs.length" v-html="unit.err_msgs.join('<br>')"></p>
                         </dd>
-                        <dd v-if="unit.is_duplicated"><a href="#" @click.prevent="removeUnit(unit)">削除</a></dd>
-                        <dd v-if="unit.can_duplicate"><a href="#" @click.prevent="addUnit(unit)">{{unit.label}}追加</a></dd>
+                        <dd v-if="unit.can_duplicate" class="form-unit_add"><a href="#" @click.prevent="addUnit(unit)" class="add_unit"><span class="add_unit-icon"></span>{{unit.label}}追加</a></dd>
                     </dl>
                 </template>
             </div>
         </section>
         <section class="form_btns">
-            <p :class="btn.class_names" v-for="btn in btns" :key="btn.label"><a href="#" @click.prevent="onClickSubmit(btn.form_name)">{{btn.label}}</a></p>
+            <p :class="btn.class_names" v-for="btn in btns" :key="btn.label"><a href="#" @click.prevent="onClickSubmit(btn.form_name)"><span>{{btn.label}}</span></a></p>
         </section>
         <slot name="forms"></slot>
     </div>

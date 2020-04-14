@@ -1,0 +1,23 @@
+@charset "UTF-8";
+
+@import "import/_reset";
+@import "import/_base";
+
+.l-form{
+	max-width:600px;
+	margin:0 auto;
+	padding:10px;
+}
+
+@import "import/module/_form";
+@import "import/module/_input_parts";
+@import "import/module/_date_parts";
+@import "import/module/_time_parts";
+@import "import/module/_checkbox_parts";
+@import "import/module/_radio_parts";
+@import "import/module/_select_parts";
+@import "import/module/_textarea_parts";
+@import "import/module/_form_btns";
+@import "import/module/_add_unit";
+@import "import/module/_remove_unit";
+@import "import/module/_btn";

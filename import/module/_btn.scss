@@ -1,0 +1,17 @@
+@charset "UTF-8";
+
+.btn{
+	display:inline-block;
+	a{
+		display:block;
+		padding:8px 15px;
+		border:1px solid #a6fd64;
+		transform: skewX(-15deg);
+
+		span{
+			display:inline-block;
+			transform: skewX(15deg);
+			color: #a6fd64;
+		}
+	}
+}
