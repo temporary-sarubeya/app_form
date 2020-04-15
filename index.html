@@ -158,7 +158,7 @@
                             type: 'text',
                             value: '',
                             name:'postal_code',
-                            maxlength:7,
+                            maxlength:8,
                             placeholder:'000-0000',
                             pattern:'^[0-9]{3}-[0-9]{4}$',
                             is_required: true,
@@ -492,7 +492,7 @@
     <div :class="class_name">
         <template v-if="mode==='edit'">
             <div :class="class_name+'-item'">
-                <p :class="class_name+'-label'">{{lebel_selected}}</p>
+                <p :class="class_name+'-label'">{{label_selected}}</p>
                 <select :name="name" v-model="value" :disabled="item.disabled">
                     <option :value="option.value" v-for="option in item.list" :key="option.value" :disabled="option.disabled">{{option.label}}</option>
                 </select>
@@ -505,13 +505,13 @@
     Vue.component('FormSelect',{
         mixins:[FormItemMixin],
         computed:{
-            lebel_selected(){
+            label_selected(){
                 return this.item.list.reduce((acc,option)=> {
                     return option.value == this.item.value ? option.label : acc;
                 },'');
             },
             value_label() {
-                return this.lebel_selected || '(未選択)';
+                return this.label_selected || '(未選択)';
             }
         },
         template:'#tmpl-app_form-select'
@@ -765,8 +765,8 @@
                     units:[]
                 };
                 data.units.forEach(unit=>{
-                    const formated_unit_data = this.formatUnitData(unit);
-                    formated_unit_data && _unit_group.units.push(formated_unit_data);
+                    const formatted_unit_data = this.formatUnitData(unit);
+                    formatted_unit_data && _unit_group.units.push(formatted_unit_data);
                 });
                 _unit_group.units.length && this.unit_groups.push(_unit_group);
 
