@@ -1,0 +1,44 @@
+@charset "UTF-8";
+
+.add_unit{
+	position:relative;
+	padding:5px 0 5px 2em;
+	font-size:14px;
+	line-height:20px;
+	color:#a6fd64;
+	.add_unit-icon{
+		display: block;
+		position: absolute;
+		content:"";
+		width: 1.4em;
+		height: 1.4em;
+		top: 50%;
+		left: 0;
+		margin-top:-0.7em;
+		box-sizing: border-box;
+		border: 1px solid #a6fd64;
+
+		&::before,
+		&::after{
+			display: block;
+			position: absolute;
+			content:"";
+			width: 1em;
+			height: 1px;
+			margin:auto;
+			top:0;
+			left:0;
+			right:0;
+			bottom:0;
+			background-color: #a6fd64;
+		}
+		&::before{
+
+		}
+		&::after{
+			transform: rotate(90deg);
+		}
+	}
+
+
+}

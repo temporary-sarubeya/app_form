@@ -1,0 +1,24 @@
+@charset "UTF-8";
+
+.input_parts{
+	input{
+		padding:5px;
+		box-sizing: border-box;
+		border:1px solid #fff;
+		font-size:16px;
+		line-height:20px;
+
+		&:disabled{
+			border:1px solid #666;
+			background-color:#454545;
+		}
+	}
+
+	input[type=text]{
+		width:100%;
+	}
+
+	input[type=number]{
+		width:auto;
+	}
+}
