@@ -665,16 +665,18 @@
             <h1>{{unit_group.group_label}}</h1>
             <div class="form-grp">
                 <template v-for="unit in unit_group.units">
-                    <dl :class="unit.class_name" :key="unit.id">
+                    <dl :class="unit.class_name" :key="unit.id" v-if="mode==='edit' || !unit.disabled">
                         <dt v-if="unit.label && !unit.is_duplicated">{{unit.label}}</dt>
                         <dd :class="unit.items_class_name">
-                            <div class="form-item" v-for="item in unit.items" :key="item.id">
-                                <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
-                                <div class="form-item-main">
-                                    <component :is="item.component_name" :item="item" @update="update" :mode="mode"></component>
+                            <template v-for="item in unit.items">
+                                <div class="form-item" :key="item.id" v-if="mode==='edit' || !item.disabled">
+                                    <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+                                    <div class="form-item-main">
+                                        <component :is="item.component_name" :item="item" @update="update" :mode="mode"></component>
+                                    </div>
+                                    <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
                                 </div>
-                                <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
-                            </div>
+                            </template>
                             <p class="form-unit_remove" v-if="unit.is_duplicated"><a href="#" @click.prevent="removeUnit(unit)" class="remove_unit">×削除</a></p>
                         </dd>
                         <dd class="form-error" v-if="unit.err_msgs.length" v-html="unit.err_msgs.join('<br>')"></dd>
@@ -791,6 +793,9 @@
                     });
                 });
             });
+
+            // unit単位の disabled を計算してセット
+            this._setUnitDisabled();
         },
         template:'#tmpl-app_form',
         methods:{
@@ -815,6 +820,8 @@
                 // 監視されている item だったら処理
                 this.observed_item[update_obj.id] && this.observed_item[update_obj.id].forEach( observer =>{
                     observer.callback.call(observer._this,update_obj);
+                    // unit 単位の disabled も更新
+                    this._setUnitDisabled();
                 });
             },
             /**
@@ -834,7 +841,8 @@
                     required:['id','items'],
                     optional:[
                         {label:''},
-                        {err_msgs:[]}
+                        {err_msgs:[]},
+                        {disabled:false}/* ぶら下がる item すべてが disabled だったら true にする */
                     ]
                 };
                 /**
@@ -1277,6 +1285,18 @@
                 return new Date().getTime().toString(16) + Math.floor(1000 * Math.random()).toString(16)
             },
             /**
+             * unit 単位の disabled を算出して（items がすべて disabled = true なら true）適用
+             */
+            _setUnitDisabled(){
+                this.unit_groups.forEach(group => {
+                    group.units.forEach(unit => {
+                        unit.disabled = !unit.items.some(item => {
+                            return !item.disabled;
+                        });
+                    });
+                });
+            },
+            /**
              * 送信をクリックした際の処理
              * mode が edit だったら入力チェックをして、エラーがなければ送信、エラーがあればエラーメッセージを表示
              * @param {String} form_name submit する form の name
@@ -1358,9 +1378,9 @@
                         form_name:'frm',
                         class_names:['btn','btn-next']
                     }
-                ]
-                /* 確認画面を想定した btns */
-                /* btns: [
+                ],
+                /* 確認画面を想定した btns（こっちを確認するときは _ をはずして、↑に_をつける */
+                btns_: [
                     {
                         label:'戻る',
                         form_name:'frm_back',
@@ -1371,7 +1391,7 @@
                         form_name:'frm_next',
                         class_names:['btn','btn-next']
                     }
-                ]*/
+                ]
             }
         });
     })();
