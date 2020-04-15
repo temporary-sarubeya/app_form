@@ -47,6 +47,7 @@
      * @property {string}  [form_data[].units[].label unit のlabel]
      * @property {string}  form_data[].units[].id unit の id ※他のunit の id と重複させない。（item の name との重複は問題なし）
      * @property {Boolean} [form_data[].units[].can_duplicate = false] unitの単位で複製できる場合は true を指定
+     * @property {number}  [form_data[].units[].max_duplicate_num] can_duplicate が true の場合、このunit の最大数（※自身を含める）未指定の場合は制限なし
      * @property {Array}   form_data[].units[].items item の配列
      *
      * -- item の Object --
@@ -66,6 +67,7 @@
      * @property {Boolean}       [form_data[].units[].items[].is_required = false] disabled が true の場合、is_required の true は無効 になるが、item が disabled = false なら入力必須としたいなら、 is_required_if_valid を使用する
      * @property {Boolean}       [form_data[].units[].items[].is_required_if_valid = false] disabled = false の場合のみ入力必須 としたい場合、true と指定
      * @property {Boolean}       [form_data[].units[].items[].is_required_all_select = false] type = checkbox のみ指定可。また、disabled が true の場合、is_required_all_select の true は無効 になる
+     * @property {Boolean}       [form_data[].units[].items[].duplicates_not_allowed  = false] 同name内で同じ値は不可
      * @property {Boolean}       [form_data[].units[].items[].not_send = false] true だと name を出力しない = form submit で送られない
      * @property {Object}        [form_data[].units[].items[].err_msg_txt] デフォルトエラーメッセージ（AppForm.$data.default_err_msg_txt）を上書きしたいときに指定
      * @property {Array}         [form_data[].units[].items[].observe_items] observe_item（他の項目と連動しての制御情報）の配列
@@ -136,7 +138,11 @@
                             name:'tour_date[]',
                             min:formatDate(now,'YYYY-MM-DD'),// サーバサイドで今日を出力
                             max:formatDate(now,'YYYY')*1+1*1+'-'+formatDate(now,'MM-DD'),// サーバサイドで1年後の今日を出力
-                            is_required: true
+                            duplicates_not_allowed:true,
+                            is_required: true,
+                            err_msg_txt:{
+                                duplicates:'日付が重複しています'
+                            }
                         },
                         {
                             type: 'time',
@@ -148,7 +154,8 @@
                             }
                         },
                     ],
-                    can_duplicate:true
+                    can_duplicate:true,
+                    max_duplicate_num:5
                 },
                 {
                     label: '郵便番号',
@@ -709,7 +716,8 @@
                     minlength:'__MINLENGTH__文字以上入力してください',
                     maxlength:'__MAXLENGTH__文字以下で入力してください',
                     pattern:'不正なフォーマットです',
-                    all_select:'すべて選択必須です'
+                    all_select:'すべて選択必須です',
+                    duplicates:'同じ値は指定できません'
                 }
             }
         },
@@ -742,7 +750,8 @@
                 },{});
             },
             /**
-             * id をキーにした unit の Object を返す。
+             * (base_id || id) をキーにした unit の Object を返す。
+             * 複製したものは束なるよう、base_id があれば base_id をキーとする
              */
             units_by_id(){
                 return this.unit_groups.reduce((ret_obj, group) =>{
@@ -872,6 +881,7 @@
                                 {disabled:false},
                                 {is_required:false},
                                 {is_required_if_valid:false},
+                                {duplicates_not_allowed:false},
                                 {not_send:false}
                             ]
                         }
@@ -889,6 +899,7 @@
                                 {disabled:false},
                                 {is_required:false},
                                 {is_required_if_valid:false},
+                                {duplicates_not_allowed:false},
                                 {not_send:false}
                             ]
                         }
@@ -906,6 +917,7 @@
                                 {disabled:false},
                                 {is_required:false},
                                 {is_required_if_valid:false},
+                                {duplicates_not_allowed:false},
                                 {not_send:false}
                             ]
                         }
@@ -923,6 +935,7 @@
                                 {disabled:false},
                                 {is_required:false},
                                 {is_required_if_valid:false},
+                                {duplicates_not_allowed:false},
                                 {not_send:false}
                             ]
                         }
@@ -1195,6 +1208,38 @@
                 return !item.disabled && Array.isArray(item.value) && item.is_required_all_select !== void 0 && item.is_required_all_select && item.value.length !== item.list.length;
             },
             /**
+             * 値の重複チェック
+             * @param {Object} item チェック対象のitem
+             * @return {boolean} エラーがあるか否か
+             */
+            _hasErrorDuplicates(item){
+                let err_flg = false;
+                if(!item.disabled && !Array.isArray(item.value) && item.value !== '' && item.duplicates_not_allowed){
+                    let same_name_and_value_items = this.unit_groups.reduce( (ret_ary, group) => {
+                        return group.units.reduce( (item_ary, unit) => {
+                            unit.items.forEach(_item => {
+                                if(_item.name === item.name && _item.value === item.value ){
+                                    item_ary.push(_item)
+                                }
+                            });
+                            return item_ary;
+                        },ret_ary);
+                    },[]);
+                    same_name_and_value_items.some((_item,index) =>{
+                        if(_item.id === item.id){
+                            // 自身が2回め以降だったらエラー
+                            if(index !== 0){
+                                err_flg = true;
+                            }
+                            return true;
+                        }
+                        return false;
+                    });
+                }
+
+                return err_flg;
+            },
+            /**
              * unit を複製し、複製元のunitの次に差し込む
              * @param {Object} base_unit 複製元のunit
              */
@@ -1269,12 +1314,16 @@
                 this._setCanDuplicate(tgt_unit_base_id);
             },
             /**
-             * 複製が可能な unit 群の can_duplicate を適用（最後の1つだけ can_duplicate が true になる
+             * 複製が可能な unit 群の can_duplicate を適用
+             * unit群の最後の1つのみ can_duplicate が true になる
+             * ただし、max_duplicate_num が指定されている場合、その数を超えていれば can_duplicate は常に false になる
              * @param {String} unit_id 対象の unit の id(base_id)
              */
             _setCanDuplicate(unit_id){
                 this.units_by_id[unit_id] && this.units_by_id[unit_id].forEach( (unit, index, origin_list) => {
-                    unit.can_duplicate = index === origin_list.length-1;
+                    let unit_num = origin_list.length;
+                    let is_over_max_duplicate_num = unit.max_duplicate_num && unit_num >= unit.max_duplicate_num;
+                    unit.can_duplicate = !is_over_max_duplicate_num && index === unit_num-1;
                 });
             },
             /**
@@ -1330,6 +1379,9 @@
 
                             // 全選択チェック
                             this._hasErrAllSelect(item) && unit.err_msgs.push(this._getErrMsg('all_select',item));
+
+                            // 重複チェック
+                            this._hasErrorDuplicates(item) && unit.err_msgs.push(this._getErrMsg('duplicates',item));
                         });
 
                         return !!unit.err_msgs.length || err_flg;
