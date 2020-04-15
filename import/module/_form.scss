@@ -13,8 +13,8 @@
 		border:1px solid #999;
 		background-color:#333;
 
-		dl + dl{
-			margin-top:10px;
+		dl + dl dt{
+			padding-top:15px;
 		}
 
 		dt{
@@ -24,12 +24,43 @@
 		}
 
 		dd{
+			padding-top:5px;
+
+			// 日付＋時間パターン専用
+			&.form-items-datetime{
+				display:flex;
+				align-items: center;
+				.form-item + .form-item{
+					margin-left:10px;
+				}
+			}
+
+			.form-item{
+				display:flex;
+				flex-wrap: wrap;
+				align-items: center;
+
+				.form-item-ttl{
+					margin-right:10px;
+					font-size:12px;
+					line-height:16px;
+				}
+				.form-item-main{
+					// flex:1 1 auto;
+				}
+				.form-item-suf{
+					margin-left:10px;
+					font-size:12px;
+					line-height:16px;
+				}
+
+			}
 			.form-unit_remove{
 				display: inline-block;
 				margin-left:10px;
 			}
 
-			.form-error{
+			&.form-error{
 				position:relative;
 				padding:2px 5px;
 				font-size:14px;
@@ -49,6 +80,13 @@
 
 			&.form-unit_add{
 				padding:5px 0;
+			}
+		}
+
+		.form-unit-tour_name,
+		.form-unit-description{
+			.form-item-main{
+				flex:1 1 auto;
 			}
 		}
 	}

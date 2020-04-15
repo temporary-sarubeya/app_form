@@ -14,7 +14,7 @@
 </div>
 
 <!-- 確認画面テスト用 こっちの id を app にする -->
-<div id="app_">
+<div id="app_" class="l-form">
     <app-form :form_data="form_data" :mode="mode" :btns="btns">
         <template v-slot:forms>
             <form action="./" method="get" name="frm_back"><!-- action の値は入力画面URL、methodは値が見やすいように一時的にget -->
@@ -44,7 +44,7 @@
      * @property {Array}   form_data[].units[] unit の配列
      *
      * -- unit の Object --
-     * @property {string}  form_data[].units[].label unit のlabel
+     * @property {string}  [form_data[].units[].label unit のlabel]
      * @property {string}  form_data[].units[].id unit の id ※他のunit の id と重複させない。（item の name との重複は問題なし）
      * @property {Boolean} [form_data[].units[].can_duplicate = false] unitの単位で複製できる場合は true を指定
      * @property {Array}   form_data[].units[].items item の配列
@@ -158,6 +158,7 @@
                             type: 'text',
                             value: '',
                             name:'postal_code',
+                            maxlength:7,
                             placeholder:'000-0000',
                             pattern:'^[0-9]{3}-[0-9]{4}$',
                             is_required: true,
@@ -235,14 +236,20 @@
                                     value: 1,
                                 },
                                 {
-                                    label: 'あり（こっちを選ぶと金額入力）',
+                                    label: 'あり',
                                     value: 2,
                                 }
                             ],
                             is_required: true
-                        },
+                        }
+                    ]
+                },
+                {
+                    id: 'fee_detail',
+                    items: [
                         {
                             type: 'number',
+                            label:'金額',
                             value: '',
                             name:'fee_detail',
                             suf:'円',
@@ -292,7 +299,12 @@
                                 }
                             ],
                             is_required: true
-                        },
+                        }
+                    ]
+                },
+                {
+                    id: 'prize_detail',
+                    items: [
                         {
                             label:'金額',
                             type: 'number',
@@ -338,7 +350,6 @@
                     ]
                 },
                 {
-                    label: '確認事項',
                     id: 'fee_agree',
                     items: [
                         {
@@ -478,18 +489,16 @@
     };
 </script>
 <script type="text/x-template" id="tmpl-app_form-select">
-    <div :class="item.class_name">
-        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+    <div :class="class_name">
         <template v-if="mode==='edit'">
-            <div :class="item.class_name+'-item'">
-                <p :class="item.class_name+'-label'">{{lebel_selected}}</p>
+            <div :class="class_name+'-item'">
+                <p :class="class_name+'-label'">{{lebel_selected}}</p>
                 <select :name="name" v-model="value" :disabled="item.disabled">
                     <option :value="option.value" v-for="option in item.list" :key="option.value" :disabled="option.disabled">{{option.label}}</option>
                 </select>
             </div>
         </template>
-        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
-        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -509,10 +518,9 @@
     });
 </script>
 <script type="text/x-template" id="tmpl-app_form-textarea">
-    <div :class="item.class_name">
-        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+    <div :class="class_name">
         <textarea :name="name" v-model="value" :placeholder="item.placeholder" :maxlength="item.maxlength" :minlength="item.minlength" :disabled="item.disabled" v-if="mode==='edit'"></textarea>
-        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -527,15 +535,14 @@
     });
 </script>
 <script type="text/x-template" id="tmpl-app_form-input_checkbox">
-    <div :class="item.class_name">
-        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+    <div :class="class_name">
         <template v-if="mode==='edit'">
-            <p :class="item.class_name+'-item'" v-for="checkbox in item.list" :key="checkbox.value">
+            <p :class="class_name+'-item'" v-for="checkbox in item.list" :key="checkbox.value">
                 <input type="checkbox" :name="name" v-model="value" :value="checkbox.value" :id="item.name+'_'+checkbox.value" :disabled="item.disabled || checkbox.disabled">
                 <label :for="item.name+'_'+checkbox.value">{{checkbox.label}}</label>
             </p>
         </template>
-        <span class="form-item-label" v-if="mode==='view'" v-html="value_label"></span>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -560,15 +567,14 @@
     });
 </script>
 <script type="text/x-template" id="tmpl-app_form-input_radio">
-    <div :class="item.class_name">
-        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+    <div :class="class_name">
         <template v-if="mode==='edit'">
-            <p :class="item.class_name+'-item'" v-for="radio in item.list" :key="radio.value">
+            <p :class="class_name+'-item'" v-for="radio in item.list" :key="radio.value">
                 <input type="radio" :name="name" v-model="value" :value="radio.value" :id="item.name+'_'+radio.value" :disabled="item.disabled || radio.disabled">
                 <label :for="item.name+'_'+radio.value">{{radio.label}}</label>
             </p>
         </template>
-        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -586,10 +592,8 @@
 </script>
 <script type="text/x-template" id="tmpl-app_form-input_time">
     <div :class="class_name">
-        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
         <input type="time" :name="name" v-model="value" :placeholder="item.placeholder" :max="item.max" :min="item.min" :step="item.step" :disabled="item.disabled" v-if="mode==='edit'">
-        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
-        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -605,11 +609,9 @@
 </script>
 <script type="text/x-template" id="tmpl-app_form-input_date">
     <div :class="class_name">
-        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
         <input type="date" :name="name" v-model="value" :placeholder="item.placeholder" :max="item.max" :step="item.step" :disabled="item.disabled" v-if="mode==='edit'">
         <!-- UI上、min が今日より後だと、日付の入力がやりづらいので、input タグの min では指定しない -->
-        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
-        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -625,10 +627,8 @@
 </script>
 <script type="text/x-template" id="tmpl-app_form-input_number">
     <div :class="class_name">
-        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
         <input type="number" :name="name" v-model="value" :placeholder="item.placeholder" :max="item.max" :min="item.min" :step="item.step" :disabled="item.disabled" v-if="mode==='edit'">
-        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
-        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -644,10 +644,8 @@
 </script>
 <script type="text/x-template" id="tmpl-app_form-input_text">
     <div :class="class_name">
-        <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
         <input type="text" :name="name" v-model="value" :placeholder="item.placeholder" :maxlength="item.maxlength" :minlength="item.minlength" :disabled="item.disabled" v-if="mode==='edit'">
-        <span class="form-item-label" v-if="mode==='view'">{{value_label}}</span>
-        <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -668,13 +666,19 @@
             <div class="form-grp">
                 <template v-for="unit in unit_group.units">
                     <dl :class="unit.class_name" :key="unit.id">
-                        <dt v-if="!unit.is_duplicated">{{unit.label}}</dt>
-                        <dd>
-                            <component v-for="item in unit.items" :key="item.id" :is="item.component_name" :item="item" @update="update" :mode="mode"></component>
+                        <dt v-if="unit.label && !unit.is_duplicated">{{unit.label}}</dt>
+                        <dd :class="unit.items_class_name">
+                            <div class="form-item" v-for="item in unit.items" :key="item.id">
+                                <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+                                <div class="form-item-main">
+                                    <component :is="item.component_name" :item="item" @update="update" :mode="mode"></component>
+                                </div>
+                                <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+                            </div>
                             <p class="form-unit_remove" v-if="unit.is_duplicated"><a href="#" @click.prevent="removeUnit(unit)" class="remove_unit">×削除</a></p>
-                            <p class="form-error" v-if="unit.err_msgs.length" v-html="unit.err_msgs.join('<br>')"></p>
                         </dd>
-                        <dd v-if="unit.can_duplicate" class="form-unit_add"><a href="#" @click.prevent="addUnit(unit)" class="add_unit"><span class="add_unit-icon"></span>{{unit.label}}追加</a></dd>
+                        <dd class="form-error" v-if="unit.err_msgs.length" v-html="unit.err_msgs.join('<br>')"></dd>
+                        <dd v-if="unit.can_duplicate && mode==='edit'" class="form-unit_add"><a href="#" @click.prevent="addUnit(unit)" class="add_unit"><span class="add_unit-icon"></span>{{unit.label}}追加</a></dd>
                     </dl>
                 </template>
             </div>
@@ -827,8 +831,9 @@
                  * @property {Array.<Object>} optional unit の任意プロパティ情報の Object の配列。 Key名が任意プロパティ名、 value が デフォルト値
                  */
                 const unit_props = {
-                    required:['label','id','items'],
+                    required:['id','items'],
                     optional:[
+                        {label:''},
                         {err_msgs:[]}
                     ]
                 };
@@ -1073,6 +1078,12 @@
                 };
                 _class_name['form-unit-'+unit_data.id] = true;
                 this.$set(unit_data, 'class_name', _class_name);
+
+                // item から特殊パターン（date と time）情報をつける
+                this.$set(unit_data, 'items_class_name', {
+                    'form-items-datetime':unit_data.items.length === 2 && unit_data.items[0].type === 'date' && unit_data.items[1].type === 'time'
+                });
+
 
                 return _is_valid ? unit_data : null;
             },
@@ -1339,7 +1350,7 @@
             el:'#app',
             data:{
                 form_data:form_data,
-                mode:'edit',/* edit | view */
+                mode:'edit',/* edit | view 入力画面のときは edit、確認画面のときは view を指定 */
                 /* 入力画面を想定した btns */
                 btns: [
                     {

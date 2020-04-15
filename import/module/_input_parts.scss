@@ -7,6 +7,11 @@
 		border:1px solid #fff;
 		font-size:16px;
 		line-height:20px;
+
+		&:disabled{
+			border:1px solid #666;
+			background-color:#454545;
+		}
 	}
 
 	input[type=text]{
