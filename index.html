@@ -9,7 +9,20 @@
 <body>
 <div id="app" class="l-form">
     <form action="./" method="get" name="frm"><!-- action の値は確認画面URL、methodは値が見やすいように一時的にget -->
-        <app-form :form_data="form_data" :mode="mode" :btns="btns"></app-form>
+        <app-form :form_data="form_data" :mode="mode" :btns="btns">
+            <template v-slot:agree_group_pre>
+                <h1>規約</h1>
+                <div class="form-terms">
+                    規約ボックス
+                </div>
+            </template>
+            <template v-slot:agree_unit_header>
+                unit 上部に入る（使用しないかもしれないが）
+            </template>
+            <template v-slot:agree_unit_footer>
+                unit 下部に入る（使用しないかもしれないが）
+            </template>
+        </app-form>
     </form>
 </div>
 
@@ -42,6 +55,7 @@
      * @property {Array}   form_data group の配列
      * @property {string}  form_data[].group_label group の見出し
      * @property {string}  [form_data[].group_note] group に対する補足
+     * @property {string}  [form_data[].group_id] group の id。 slot でgroup の前に差し込むとき、もしくは section.form に form-【group_id】 の class もつけたいときに使用
      * @property {Array}   form_data[].units[] unit の配列
      *
      * -- unit の Object --
@@ -430,9 +444,9 @@
         // 同意事項の group は confirm 画面では設定しない
         {
             group_label:'同意事項',
+            group_id:'agree',
             units:[
                 {
-                    label: '同意事項',
                     id: 'agree',
                     items: [
                         {
@@ -461,8 +475,9 @@
                 }
             ]
         }
-
     ];
+
+
 </script>
 <!-- ■form の情報ここまで（value は サーバサイドで出力。他、必要に応じて blade による制御が入ってよい ） ■■■■■■■■■■■■ -->
 
@@ -685,10 +700,12 @@
 </script>
 <script type="text/x-template" id="tmpl-app_form">
     <div>
-        <section class="form" v-for="unit_group in unit_groups" :key="unit_group.group_label">
+        <section :class="unit_group.group_id?group_class_name[unit_group.group_id]:group_class_name.default" v-for="unit_group in unit_groups" :key="unit_group.group_label">
+            <slot :name="unit_group.group_id+'_group_pre'" v-if="unit_group.group_id"></slot>
             <h1>@{{unit_group.group_label}}<span class="form-grp_note" v-if="unit_group.group_note">@{{unit_group.group_note}}</span></h1>
             <div class="form-grp">
                 <template v-for="unit in unit_group.units">
+                    <slot :name="unit.id+'_unit_header'"></slot>
                     <dl :class="unit.class_name" :key="unit.id" v-if="mode==='edit' || !unit.disabled">
                         <dt v-if="unit.label && !unit.is_duplicated">@{{unit.label}}</dt>
                         <dd :class="unit.items_class_name">
@@ -707,6 +724,7 @@
                         <dd class="form-note" v-if="unit.note" v-html="unit.note"></dd>
                         <dd v-if="unit.can_duplicate && mode==='edit'" class="form-unit_add"><a href="#" @click.prevent="addUnit(unit)" class="add_unit"><span class="add_unit-icon"></span>@{{unit.label}}追加</a></dd>
                     </dl>
+                    <slot :name="unit.id+'_unit_footer'"></slot>
                 </template>
             </div>
         </section>
@@ -756,6 +774,27 @@
         },
         computed:{
             /**
+             * group を囲むタグにつける class
+             * 常に form はつく。
+             * group_id があれば form-【group_id】 の class もつく
+             */
+            group_class_name(){
+                let ret_obj = {
+                    default:{
+                        form:true
+                    }
+                }
+                this.unit_groups.forEach(group => {
+                    if(group.group_id){
+                        ret_obj[group.group_id] = {
+                            form:true,
+                        }
+                        ret_obj[group.group_id]['form-'+group.group_id] = true;
+                    }
+                });
+                return ret_obj;
+            },
+            /**
              * id(≒name) をキーにした item の Object を返す。
              */
             item_by_id(){
@@ -791,6 +830,7 @@
                 let _unit_group = {
                     group_label:data.group_label,
                     group_note:data.group_note,
+                    group_id:data.group_id || null,
                     units:[]
                 };
                 data.units.forEach(unit=>{
