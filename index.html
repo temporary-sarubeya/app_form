@@ -41,13 +41,15 @@
      * @namespace
      * @property {Array}   form_data group の配列
      * @property {string}  form_data[].group_label group の見出し
+     * @property {string}  [form_data[].group_note] group に対する補足
      * @property {Array}   form_data[].units[] unit の配列
      *
      * -- unit の Object --
-     * @property {string}  [form_data[].units[].label unit のlabel]
+     * @property {string}  [form_data[].units[].label] unit のlabel
      * @property {string}  form_data[].units[].id unit の id ※他のunit の id と重複させない。（item の name との重複は問題なし）
      * @property {Boolean} [form_data[].units[].can_duplicate = false] unitの単位で複製できる場合は true を指定
      * @property {number}  [form_data[].units[].max_duplicate_num] can_duplicate が true の場合、このunit の最大数（※自身を含める）未指定の場合は制限なし
+     * @property {string}  [form_data[].units[].label] unit に対する補足
      * @property {Array}   form_data[].units[].items item の配列
      *
      * -- item の Object --
@@ -69,6 +71,7 @@
      * @property {Boolean}       [form_data[].units[].items[].is_required_all_select = false] type = checkbox のみ指定可。また、disabled が true の場合、is_required_all_select の true は無効 になる
      * @property {Boolean}       [form_data[].units[].items[].duplicates_not_allowed  = false] 同name内で同じ値は不可
      * @property {Boolean}       [form_data[].units[].items[].not_send = false] true だと name を出力しない = form submit で送られない
+     * @property {Boolean}       [form_data[].units[].items[].not_include_label_text_in_label_tag = false] type = checkbox のみ指定可。true だと label タグに label テキストを含めない。
      * @property {Object}        [form_data[].units[].items[].err_msg_txt] デフォルトエラーメッセージ（AppForm.$data.default_err_msg_txt）を上書きしたいときに指定
      * @property {Array}         [form_data[].units[].items[].observe_items] observe_item（他の項目と連動しての制御情報）の配列
      *
@@ -80,6 +83,7 @@
     var form_data = [
         {
             group_label:'概要',
+            group_note:'※文言はいる',
             units:[
                 {
                     label: '大会名称',
@@ -332,7 +336,8 @@
                                 }
                             ]
                         }
-                    ]
+                    ],
+                    note:'※補足事項入ります'
                 },
                 {
                     label: '提供者',
@@ -437,7 +442,7 @@
                             not_send:true,
                             list: [
                                 {
-                                    label: '同意事項文章入る同意事項文章入る同意事項文章入る同意事項文章入る1',
+                                    label: '<a href="#">同意事項</a>文章入る同意事項文章入る同意事項文章入る同意事項文章入る1',
                                     value: 1,
                                 },
                                 {
@@ -449,7 +454,8 @@
                                     value: 3,
                                 }
                             ],
-                            is_required_all_select: true
+                            is_required_all_select: true,
+                            not_include_label_text_in_label_tag:true
                         }
                     ],
                 }
@@ -464,6 +470,7 @@
 <script>
     // form_item 共通の mixin
     var FormItemMixin = {
+        delimiters : ['@{{', '}}'],/* blade埋め込みを想定して修正。blade に展開する際にはこの行削除(1/2) */
         props:{
             item:{
                 type:Object,
@@ -499,13 +506,13 @@
     <div :class="class_name">
         <template v-if="mode==='edit'">
             <div :class="class_name+'-item'">
-                <p :class="class_name+'-label'">{{label_selected}}</p>
+                <p :class="class_name+'-label'">@{{label_selected}}</p>
                 <select :name="name" v-model="value" :disabled="item.disabled">
-                    <option :value="option.value" v-for="option in item.list" :key="option.value" :disabled="option.disabled">{{option.label}}</option>
+                    <option :value="option.value" v-for="option in item.list" :key="option.value" :disabled="option.disabled">@{{option.label}}</option>
                 </select>
             </div>
         </template>
-        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">@{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -527,7 +534,7 @@
 <script type="text/x-template" id="tmpl-app_form-textarea">
     <div :class="class_name">
         <textarea :name="name" v-model="value" :placeholder="item.placeholder" :maxlength="item.maxlength" :minlength="item.minlength" :disabled="item.disabled" v-if="mode==='edit'"></textarea>
-        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">@{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -544,12 +551,16 @@
 <script type="text/x-template" id="tmpl-app_form-input_checkbox">
     <div :class="class_name">
         <template v-if="mode==='edit'">
-            <p :class="class_name+'-item'" v-for="checkbox in item.list" :key="checkbox.value">
+            <p :class="item_class_name" v-for="checkbox in item.list" :key="checkbox.value">
                 <input type="checkbox" :name="name" v-model="value" :value="checkbox.value" :id="item.name+'_'+checkbox.value" :disabled="item.disabled || checkbox.disabled">
-                <label :for="item.name+'_'+checkbox.value">{{checkbox.label}}</label>
+                <label :for="item.name+'_'+checkbox.value" v-if="!item.not_include_label_text_in_label_tag">@{{checkbox.label}}</label>
+                <template v-else>
+                    <label :for="item.name+'_'+checkbox.value"></label>
+                    <span :class="class_name+'-item-label'" v-html="checkbox.label"></span>
+                </template>
             </p>
         </template>
-        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'" v-html="value_label"></p>
     </div>
 </script>
 <script>
@@ -569,6 +580,12 @@
                     });
                     return value_label_ary;
                 },[]).join('<br>') : '(未選択)';
+            },
+            item_class_name(){
+                let _class_name = {};
+                _class_name[this.class_name+'-item'] = true;
+                _class_name['is-clickarea_checkbox_only'] = this.item.not_include_label_text_in_label_tag;
+                return _class_name;
             }
         }
     });
@@ -578,10 +595,10 @@
         <template v-if="mode==='edit'">
             <p :class="class_name+'-item'" v-for="radio in item.list" :key="radio.value">
                 <input type="radio" :name="name" v-model="value" :value="radio.value" :id="item.name+'_'+radio.value" :disabled="item.disabled || radio.disabled">
-                <label :for="item.name+'_'+radio.value">{{radio.label}}</label>
+                <label :for="item.name+'_'+radio.value">@{{radio.label}}</label>
             </p>
         </template>
-        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">@{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -600,7 +617,7 @@
 <script type="text/x-template" id="tmpl-app_form-input_time">
     <div :class="class_name">
         <input type="time" :name="name" v-model="value" :placeholder="item.placeholder" :max="item.max" :min="item.min" :step="item.step" :disabled="item.disabled" v-if="mode==='edit'">
-        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">@{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -618,7 +635,7 @@
     <div :class="class_name">
         <input type="date" :name="name" v-model="value" :placeholder="item.placeholder" :max="item.max" :step="item.step" :disabled="item.disabled" v-if="mode==='edit'">
         <!-- UI上、min が今日より後だと、日付の入力がやりづらいので、input タグの min では指定しない -->
-        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">@{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -635,7 +652,7 @@
 <script type="text/x-template" id="tmpl-app_form-input_number">
     <div :class="class_name">
         <input type="number" :name="name" v-model="value" :placeholder="item.placeholder" :max="item.max" :min="item.min" :step="item.step" :disabled="item.disabled" v-if="mode==='edit'">
-        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">@{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -652,7 +669,7 @@
 <script type="text/x-template" id="tmpl-app_form-input_text">
     <div :class="class_name">
         <input type="text" :name="name" v-model="value" :placeholder="item.placeholder" :maxlength="item.maxlength" :minlength="item.minlength" :disabled="item.disabled" v-if="mode==='edit'">
-        <p :class="class_name + '-value_label'" v-if="mode==='view'">{{value_label}}</p>
+        <p :class="class_name + '-value_label'" v-if="mode==='view'">@{{value_label}}</p>
     </div>
 </script>
 <script>
@@ -669,37 +686,39 @@
 <script type="text/x-template" id="tmpl-app_form">
     <div>
         <section class="form" v-for="unit_group in unit_groups" :key="unit_group.group_label">
-            <h1>{{unit_group.group_label}}</h1>
+            <h1>@{{unit_group.group_label}}<span class="form-grp_note" v-if="unit_group.group_note">@{{unit_group.group_note}}</span></h1>
             <div class="form-grp">
                 <template v-for="unit in unit_group.units">
                     <dl :class="unit.class_name" :key="unit.id" v-if="mode==='edit' || !unit.disabled">
-                        <dt v-if="unit.label && !unit.is_duplicated">{{unit.label}}</dt>
+                        <dt v-if="unit.label && !unit.is_duplicated">@{{unit.label}}</dt>
                         <dd :class="unit.items_class_name">
                             <template v-for="item in unit.items">
                                 <div class="form-item" :key="item.id" v-if="mode==='edit' || !item.disabled">
-                                    <span class="form-item-ttl" v-if="item.label">{{item.label}}</span>
+                                    <span class="form-item-ttl" v-if="item.label">@{{item.label}}</span>
                                     <div class="form-item-main">
                                         <component :is="item.component_name" :item="item" @update="update" :mode="mode"></component>
                                     </div>
-                                    <span class="form-item-suf" v-if="item.suf">{{item.suf}}</span>
+                                    <span class="form-item-suf" v-if="item.suf">@{{item.suf}}</span>
                                 </div>
                             </template>
                             <p class="form-unit_remove" v-if="unit.is_duplicated"><a href="#" @click.prevent="removeUnit(unit)" class="remove_unit">×削除</a></p>
                         </dd>
                         <dd class="form-error" v-if="unit.err_msgs.length" v-html="unit.err_msgs.join('<br>')"></dd>
-                        <dd v-if="unit.can_duplicate && mode==='edit'" class="form-unit_add"><a href="#" @click.prevent="addUnit(unit)" class="add_unit"><span class="add_unit-icon"></span>{{unit.label}}追加</a></dd>
+                        <dd class="form-note" v-if="unit.note" v-html="unit.note"></dd>
+                        <dd v-if="unit.can_duplicate && mode==='edit'" class="form-unit_add"><a href="#" @click.prevent="addUnit(unit)" class="add_unit"><span class="add_unit-icon"></span>@{{unit.label}}追加</a></dd>
                     </dl>
                 </template>
             </div>
         </section>
         <section class="form_btns">
-            <p :class="btn.class_names" v-for="btn in btns" :key="btn.label"><a href="#" @click.prevent="onClickSubmit(btn.form_name)"><span>{{btn.label}}</span></a></p>
+            <p :class="btn.class_names" v-for="btn in btns" :key="btn.label"><a href="#" @click.prevent="onClickSubmit(btn.form_name)"><span>@{{btn.label}}</span></a></p>
         </section>
         <slot name="forms"></slot>
     </div>
 </script>
 <script>
     Vue.component('AppForm',{
+        delimiters : ['@{{', '}}'],/* blade埋め込みを想定して修正。blade に展開する際にはこの行削除(2/2) */
         data(){
             return {
                 unit_groups: [],
@@ -771,6 +790,7 @@
             this.form_data.forEach(data=>{
                 let _unit_group = {
                     group_label:data.group_label,
+                    group_note:data.group_note,
                     units:[]
                 };
                 data.units.forEach(unit=>{
@@ -971,6 +991,7 @@
                                 {is_required:false},
                                 {is_required_if_valid:false},
                                 {is_required_all_select:false},
+                                {not_include_label_text_in_label_tag:false},
                                 {not_send:false}
                             ]
                         },
@@ -1418,6 +1439,7 @@
 <script>
     (function () {
         "use strict";
+
         new Vue({
             el:'#app',
             data:{

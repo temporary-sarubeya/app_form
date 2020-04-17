@@ -6,6 +6,12 @@
 		font-size:20px;
 		line-height:24px;
 		color:#a6fd64;
+
+		.form-grp_note{
+			margin-left:10px;
+			font-size:10px;
+			line-height:12px;
+		}
 	}
 
 	.form-grp{
@@ -58,6 +64,13 @@
 			.form-unit_remove{
 				display: inline-block;
 				margin-left:10px;
+			}
+
+			&.form-note{
+				padding:5px 0 0 ;
+				font-size:10px;
+				line-height:12px;
+				color:#a6fd64;
 			}
 
 			&.form-error{

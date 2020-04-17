@@ -130,6 +130,12 @@ body {
   color: #a6fd64;
 }
 
+.form h1 .form-grp_note {
+  margin-left: 10px;
+  font-size: 10px;
+  line-height: 12px;
+}
+
 .form .form-grp {
   padding: 10px;
   border: 1px solid #999;
@@ -180,6 +186,13 @@ body {
 .form .form-grp dd .form-unit_remove {
   display: inline-block;
   margin-left: 10px;
+}
+
+.form .form-grp dd.form-note {
+  padding: 5px 0 0;
+  font-size: 10px;
+  line-height: 12px;
+  color: #a6fd64;
 }
 
 .form .form-grp dd.form-error {
@@ -316,6 +329,27 @@ body {
 
 .checkbox_parts .checkbox_parts-item input[type=checkbox]:disabled + label::after {
   border-color: #aaa;
+}
+
+.checkbox_parts .checkbox_parts-item.is-clickarea_checkbox_only {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox_parts .checkbox_parts-item.is-clickarea_checkbox_only label {
+  flex: 0 0 auto;
+  width: 1.5em;
+  height: 1em;
+  padding: 2px 0;
+}
+
+.checkbox_parts .checkbox_parts-item.is-clickarea_checkbox_only .checkbox_parts-item-label {
+  flex: 1 1 auto;
+}
+
+.checkbox_parts .checkbox_parts-item.is-clickarea_checkbox_only .checkbox_parts-item-label a {
+  color: #fff;
+  text-decoration: underline;
 }
 
 .radio_parts .radio_parts-item {
