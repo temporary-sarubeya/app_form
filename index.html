@@ -84,6 +84,7 @@
      * @property {Boolean}       [form_data[].units[].items[].is_required_if_valid = false] disabled = false の場合のみ入力必須 としたい場合、true と指定
      * @property {Boolean}       [form_data[].units[].items[].is_required_all_select = false] type = checkbox のみ指定可。また、disabled が true の場合、is_required_all_select の true は無効 になる
      * @property {Boolean}       [form_data[].units[].items[].duplicates_not_allowed  = false] 同name内で同じ値は不可
+     * @property {string}        [form_data[].units[].items[].is_same_as] type = text での使用を想定。他 item と同じ値でなければエラー としたい場合、その他 item の name を指定。指定された 他 item の value が空、配列の場合は無効。
      * @property {Boolean}       [form_data[].units[].items[].not_send = false] true だと name を出力しない = form submit で送られない
      * @property {Boolean}       [form_data[].units[].items[].not_include_label_text_in_label_tag = false] type = checkbox のみ指定可。true だと label タグに label テキストを含めない。
      * @property {Object}        [form_data[].units[].items[].err_msg_txt] デフォルトエラーメッセージ（AppForm.$data.default_err_msg_txt）を上書きしたいときに指定
@@ -138,6 +139,36 @@
                             min: 5,
                             max: 1000,
                             is_required: true
+                        }
+                    ]
+                },
+                {
+                    label: 'メールアドレス',
+                    id: 'mail_address',
+                    items: [
+                        {
+                            type: 'text',
+                            value: '',
+                            name:'mail_address',
+                            pattern:'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,3}$',
+                            is_required: true
+                        }
+                    ]
+                },
+                {
+                    label: 'メールアドレス(確認)',
+                    id: 'mail_address_confirm',
+                    items: [
+                        {
+                            type: 'text',
+                            value: '',
+                            name:'mail_address_confirm',
+                            pattern:'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,3}$',
+                            is_same_as:'mail_address',
+                            is_required: true,
+                            err_msg_txt:{
+                                not_same:'メールアドレスと一致しません'
+                            }
                         }
                     ]
                 },
@@ -757,7 +788,8 @@
                     maxlength:'__MAXLENGTH__文字以下で入力してください',
                     pattern:'不正なフォーマットです',
                     all_select:'すべて選択必須です',
-                    duplicates:'同じ値は指定できません'
+                    duplicates:'同じ値は指定できません',
+                    not_same:'__NAME__と同じ値を指定してください'
                 }
             }
         },
@@ -798,7 +830,7 @@
                 return ret_obj;
             },
             /**
-             * id(≒name) をキーにした item の Object を返す。
+             * item.id(≒name) をキーにした item の Object を返す。
              */
             item_by_id(){
                 return this.unit_groups.reduce((ret_obj, group) =>{
@@ -811,7 +843,7 @@
                 },{});
             },
             /**
-             * (base_id || id) をキーにした unit の Object を返す。
+             * unit.(base_id || id) をキーにした unit の Object の配列を返す。
              * 複製したものは束なるよう、base_id があれば base_id をキーとする
              */
             units_by_id(){
@@ -824,6 +856,19 @@
                         ret_obj[_id].push(unit);
                     });
                     return ret_obj;
+                },{});
+            },
+            /**
+             * item.id(≒name) をキーにした unit の Objectを返す。
+             */
+            unit_by_item_id(){
+                return this.unit_groups.reduce((ret_obj, group) =>{
+                    return group.units.reduce((acc,unit) => {
+                        unit.items.forEach(item => {
+                            acc[item.id] = unit;
+                        });
+                        return acc;
+                    },ret_obj);
                 },{});
             }
         },
@@ -945,6 +990,7 @@
                                 {is_required:false},
                                 {is_required_if_valid:false},
                                 {duplicates_not_allowed:false},
+                                {is_same_as:null},
                                 {not_send:false}
                             ]
                         }
@@ -1206,6 +1252,13 @@
                     err_msg = err_msg_txt[err_type].replace(/__MAXLENGTH__/g,item.maxlength);
                 }
 
+                if(err_type === 'not_same'){
+                    let _same_as_item = this.item_by_id[item.is_same_as]; // item の id は name から複製されたものなので、item_by_ *id* でよい
+                    let _unit_of_same_as_item = this.unit_by_item_id[_same_as_item.id];
+                    let replace_str = _same_as_item && _unit_of_same_as_item ? _same_as_item.label || _unit_of_same_as_item.label || _same_as_item.name : '';
+                    err_msg = err_msg_txt[err_type].replace(/__NAME__/g,replace_str);
+                }
+
                 return err_msg;
             },
             /**
@@ -1301,6 +1354,22 @@
                     });
                 }
 
+                return err_flg;
+            },
+            /**
+             * 指定の他アイテムの値と、値が同じかどうかチェック
+             * @param {Object} item チェック対象のitem
+             * @return {boolean} エラーがあるか否か
+             */
+            _hasErrorNotSame(item){
+                let err_flg = false;
+                if(!item.disabled && !Array.isArray(item.value) && item.value !== '' && item.is_same_as){
+                    let _same_as_item = this.item_by_id[item.is_same_as]; // item の id は name から複製されたものなので、item_by_ *id* でよい
+                    if(_same_as_item && !Array.isArray(_same_as_item.value)  && _same_as_item.value && item.value !== _same_as_item.value){
+                        err_flg = true;
+                    }
+
+                }
                 return err_flg;
             },
             /**
@@ -1446,6 +1515,10 @@
 
                             // 重複チェック
                             this._hasErrorDuplicates(item) && unit.err_msgs.push(this._getErrMsg('duplicates',item));
+
+                            // 同じ値かチェック
+                            this._hasErrorNotSame(item) && unit.err_msgs.push(this._getErrMsg('not_same',item));
+
                         });
 
                         return !!unit.err_msgs.length || err_flg;
