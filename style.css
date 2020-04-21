@@ -219,7 +219,9 @@ body {
 }
 
 .form .form-grp .form-unit-tour_name .form-item-main,
-.form .form-grp .form-unit-description .form-item-main {
+.form .form-grp .form-unit-description .form-item-main,
+.form .form-grp .form-unit-mail_address .form-item-main,
+.form .form-grp .form-unit-mail_address_confirm .form-item-main {
   flex: 1 1 auto;
 }
 
